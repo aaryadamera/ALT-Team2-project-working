@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CreditTrust AI – Explainable Loan Risk Assessment</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0B1F3A; --navy-2:#122a4d; --teal:#0D9488; --teal-light:#14B8A6;
+    --bg:#F2F4F7; --card:#FFFFFF; --ink:#16213B; --muted:#5B6B85; --line:#E3E8F0;
+    --red:#C0362C; --red-bg:#FBEAE8; --green:#1C7C4C; --green-bg:#E8F5EC;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}
+  header{background:linear-gradient(180deg,var(--navy),var(--navy-2));padding:18px 24px 0;position:sticky;top:0;z-index:10;}
+  .header-top{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--teal-light),#0a5f57);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .brand h1{color:#fff;font-size:18px;margin:0;}
+  .brand p{color:#9FB1CE;font-size:12px;margin:2px 0 0;}
+  #statusPill{font-size:12px;color:#9FB1CE;}
+  #statusPill b{color:var(--teal-light);}
+  nav{max-width:1200px;margin:14px auto 0;display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,.08);}
+  nav button{background:none;border:none;color:#A9BAD6;padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:2.5px solid transparent;}
+  nav button.active{color:#fff;border-color:var(--teal-light);}
+  main{max-width:1200px;margin:0 auto;padding:26px 24px 60px;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  h2.title{font-size:24px;margin:0 0 6px;}
+  p.sub{color:var(--muted);font-size:14px;margin:0 0 20px;max-width:640px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;}
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:860px){.grid2{grid-template-columns:1fr 1fr;}}
+  .stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
+  .stat{flex:1;min-width:160px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .stat .num{font-size:22px;font-weight:700;}
+  .stat .lbl{font-size:12px;color:var(--muted);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11.5px;color:var(--muted);text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line);}
+  tbody td{padding:10px 12px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  tr.best{background:#EFFBF8;}
+  .best-tag{background:var(--teal);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:6px;}
+  .loading{color:var(--muted);font-size:13px;padding:20px;text-align:center;}
+  .err{color:var(--red);font-size:13px;padding:12px;background:var(--red-bg);border-radius:8px;}
+
+  form .row{margin-bottom:14px;}
+  form label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  form input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .presets{display:flex;gap:8px;margin-bottom:16px;}
+  .preset{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:#FBFCFE;font-size:12.5px;font-weight:600;cursor:pointer;}
+  .preset.low{color:var(--green);border-color:#BFE3CC;}
+  .preset.high{color:var(--red);border-color:#E9C7C3;}
+  .predict-btn{width:100%;padding:12px;border:none;border-radius:9px;background:var(--teal);color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;}
+  .predict-btn:disabled{opacity:.6;cursor:wait;}
+
+  .badge-card{border-radius:14px;padding:18px;margin-bottom:16px;}
+  .badge-card.approved{background:var(--green-bg);border:1px solid #BFE3CC;}
+  .badge-card.risk{background:var(--red-bg);border:1px solid #E9C7C3;}
+  .badge-pill{display:inline-block;font-weight:700;font-size:13px;color:#fff;border-radius:999px;padding:5px 12px;}
+  .badge-pill.approved{background:var(--green);}
+  .badge-pill.risk{background:var(--red);}
+  .prob{font-size:30px;font-weight:800;margin:10px 0 2px;}
+  .factor{margin-bottom:10px;}
+  .factor .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
+  .factor .bar{height:6px;background:#EEF1F6;border-radius:4px;overflow:hidden;}
+  .factor .bar>div{height:100%;}
+  .explain-box{background:#F6F8FB;border-left:3px solid var(--teal);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.55;margin-top:14px;}
+  .db-note{font-size:12px;color:var(--muted);margin-top:16px;}
+  #chartWrap canvas{max-height:280px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-mark">CT</div>
+      <div><h1>CreditTrust AI</h1><p>Explainable Loan Risk Assessment</p></div>
+    </div>
+    <div id="statusPill">connecting to backend…</div>
+  </div>
+  <nav>
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="explain">Explainability</button>
+    <button data-tab="predict">Try a Prediction</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section class="panel active" id="panel-overview">
+    <h2 class="title">Model Leaderboard</h2>
+    <p class="sub">All 5 candidate models were trained and scored on the identical held-out test split. The highest ROC&ndash;AUC model is automatically promoted to serve live predictions.</p>
+    <div class="stat-row" id="statRow"><div class="loading">Loading dataset summary…</div></div>
+    <div class="grid2">
+      <div class="card">
+        <div id="leaderboardTable"><div class="loading">Loading leaderboard…</div></div>
+      </div>
+      <div class="card" id="chartWrap">
+        <h3 style="font-size:14px;margin:0 0 12px;">ROC&ndash;AUC by Model</h3>
+        <canvas id="aucChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPLAINABILITY -->
+  <section class="panel" id="panel-explain">
+    <h2 class="title">Global Explainability (SHAP)</h2>
+    <p class="sub">Aggregated SHAP importance for the promoted model, computed against a sample of the training data.</p>
+    <div class="card">
+      <canvas id="shapChart" style="max-height:360px;"></canvas>
+    </div>
+  </section>
+
+  <!-- PREDICT -->
+  <section class="panel" id="panel-predict">
+    <h2 class="title">Try a Prediction</h2>
+    <p class="sub">Enter an applicant profile. The request is scored by the promoted model, explained live with LIME, and logged to the database.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="presets">
+          <button class="preset low" id="presetLow" type="button">Load Low Risk Sample</button>
+          <button class="preset high" id="presetHigh" type="button">Load High Risk Sample</button>
+        </div>
+        <form id="predictForm">
+          <div class="row"><label>Applicant Name</label><input type="text" id="applicant_name" value="Jordan Blake"></div>
+          <div class="two">
+            <div class="row"><label>Age</label><input type="number" id="age" value="34" min="18" max="100"></div>
+            <div class="row"><label>Monthly Income ($)</label><input type="number" id="monthly_income" value="6200" min="0"></div>
+          </div>
+          <div class="two">
+            <div class="row"><label>Credit Utilization (0-1.5)</label><input type="number" step="0.01" id="revolving_utilization" value="0.28"></div>
+            <div class="row"><label>Debt Ratio (0-3)</label><input type="number" step="0.01" id="debt_ratio" value="0.35"></div>
+          </div>
+          <div class="two">
+            <div class="row"><label>Open Credit Lines</label><input type="number" id="open_credit_lines" value="7"></div>
+            <div class="row"><label>Real Estate Loans</label><input type="number" id="real_estate_loans" value="1"></div>
+          </div>
+          <div class="two">
+            <div class="row"><label>Dependents</label><input type="number" id="dependents" value="1"></div>
+            <div class="row"><label>Late 30-59 Days (count)</label><input type="number" id="late_30_59_days" value="0"></div>
+          </div>
+          <div class="two">
+            <div class="row"><label>Late 60-89 Days (count)</label><input type="number" id="late_60_89_days" value="0"></div>
+            <div class="row"><label>Late 90+ Days (count)</label><input type="number" id="late_90_plus_days" value="0"></div>
+          </div>
+          <button class="predict-btn" type="submit" id="predictBtn">Predict Approval &amp; Risk</button>
+        </form>
+      </div>
+      <div class="card" id="resultCard">
+        <div class="loading">Fill in the form and select "Predict Approval &amp; Risk" to see the model's decision here.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const API = ""; // same-origin: FastAPI serves this file too
+
+function $(id){ return document.getElementById(id); }
+
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    $('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+async function apiGet(path){
+  const res = await fetch(API+path);
+  if(!res.ok) throw new Error('Request failed: '+res.status);
+  return res.json();
+}
+async function apiPost(path, body){
+  const res = await fetch(API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if(!res.ok){
+    const detail = await res.json().catch(()=>({}));
+    throw new Error(detail.detail || ('Request failed: '+res.status));
+  }
+  return res.json();
+}
+
+async function loadHealth(){
+  try{
+    const h = await apiGet('/api/health');
+    $('statusPill').innerHTML = `Live · <b>${h.promoted_model}</b> promoted · AUC ${h.roc_auc}`;
+    $('statRow').innerHTML = `
+      <div class="stat"><div class="num">${h.train_rows?.toLocaleString() ?? '—'}</div><div class="lbl">Training rows</div></div>
+      <div class="stat"><div class="num">${h.test_rows?.toLocaleString() ?? '—'}</div><div class="lbl">Held-out test rows</div></div>
+      <div class="stat"><div class="num">${h.default_rate_pct ?? '—'}%</div><div class="lbl">Historical default rate</div></div>
+      <div class="stat"><div class="num">${h.trained_on_real_data ? 'Real' : 'Synthetic'}</div><div class="lbl">Training data source</div></div>
+    `;
+  }catch(e){
+    $('statusPill').textContent = 'Backend unreachable';
+    $('statRow').innerHTML = `<div class="err">Could not reach the API. Is the backend running? (${e.message})</div>`;
+  }
+}
+
+let aucChartInstance, shapChartInstance;
+
+async function loadLeaderboard(){
+  try{
+    const data = await apiGet('/api/leaderboard');
+    data.sort((a,b)=>b.roc_auc-a.roc_auc);
+    $('leaderboardTable').innerHTML = `
+      <table>
+        <thead><tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th></tr></thead>
+        <tbody>
+          ${data.map(m=>`
+            <tr class="${m.is_best?'best':''}">
+              <td>${m.model}${m.is_best?'<span class="best-tag">Best</span>':''}</td>
+              <td>${m.accuracy}%</td><td>${m.precision}%</td><td>${m.recall}%</td><td>${m.f1}%</td><td>${m.roc_auc}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+    const ctx = $('aucChart').getContext('2d');
+    if(aucChartInstance) aucChartInstance.destroy();
+    aucChartInstance = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:data.map(m=>m.model), datasets:[{ label:'ROC-AUC', data:data.map(m=>m.roc_auc),
+        backgroundColor:data.map(m=>m.is_best?'#0D9488':'#B7C4D8') }] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ min:0.7, max:1.0 } } }
+    });
+  }catch(e){
+    $('leaderboardTable').innerHTML = `<div class="err">Could not load leaderboard: ${e.message}</div>`;
+  }
+}
+
+async function loadShap(){
+  try{
+    const data = await apiGet('/api/shap/global');
+    const ctx = $('shapChart').getContext('2d');
+    if(shapChartInstance) shapChartInstance.destroy();
+    shapChartInstance = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:data.map(f=>f.feature), datasets:[{ label:'Mean |SHAP value|', data:data.map(f=>f.mean_abs_shap),
+        backgroundColor:data.map(f=>f.direction==='positive'?'#C0362C':'#1C7C4C') }] },
+      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}} }
+    });
+  }catch(e){
+    $('panel-explain').querySelector('.card').innerHTML = `<div class="err">Could not load SHAP data: ${e.message}</div>`;
+  }
+}
+
+function loadPreset(p){
+  for(const k in p) if($(k)) $(k).value = p[k];
+}
+$('presetLow').addEventListener('click', ()=>loadPreset({
+  applicant_name:'Priya Nair', age:41, monthly_income:9800, revolving_utilization:0.12, debt_ratio:0.22,
+  open_credit_lines:9, real_estate_loans:2, dependents:1, late_30_59_days:0, late_60_89_days:0, late_90_plus_days:0
+}));
+$('presetHigh').addEventListener('click', ()=>loadPreset({
+  applicant_name:'Casey Ruiz', age:26, monthly_income:2600, revolving_utilization:0.95, debt_ratio:1.6,
+  open_credit_lines:4, real_estate_loans:0, dependents:2, late_30_59_days:3, late_60_89_days:2, late_90_plus_days:2
+}));
+
+$('predictForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const btn = $('predictBtn');
+  btn.disabled = true; btn.textContent = 'Scoring…';
+  const payload = {
+    applicant_name: $('applicant_name').value,
+    age: Number($('age').value),
+    monthly_income: Number($('monthly_income').value),
+    revolving_utilization: Number($('revolving_utilization').value),
+    debt_ratio: Number($('debt_ratio').value),
+    open_credit_lines: Number($('open_credit_lines').value),
+    real_estate_loans: Number($('real_estate_loans').value),
+    dependents: Number($('dependents').value),
+    late_30_59_days: Number($('late_30_59_days').value),
+    late_60_89_days: Number($('late_60_89_days').value),
+    late_90_plus_days: Number($('late_90_plus_days').value),
+  };
+  try{
+    const r = await apiPost('/api/predict', payload);
+    const highRisk = r.risk_label.startsWith('High');
+    const pct = (r.default_probability*100).toFixed(1);
+    const maxC = Math.max(...r.top_factors.map(f=>Math.abs(f.contribution)), 0.0001);
+    $('resultCard').innerHTML = `
+      <div class="badge-card ${highRisk?'risk':'approved'}">
+        <span class="badge-pill ${highRisk?'risk':'approved'}">${r.risk_label}</span>
+        <div class="prob" style="color:${highRisk?'#C0362C':'#1C7C4C'}">${pct}%</div>
+        <div style="font-size:12.5px;color:var(--muted)">Default probability · scored by ${r.model_used} · decision: ${r.decision}</div>
+      </div>
+      <div>
+        ${r.top_factors.map(f=>`
+          <div class="factor">
+            <div class="top"><span>${f.feature}</span><span>${f.contribution>=0?'+':''}${f.contribution}</span></div>
+            <div class="bar"><div style="width:${Math.max(6,Math.abs(f.contribution)/maxC*100)}%;background:${f.direction==='positive'?'#C0362C':'#1C7C4C'}"></div></div>
+          </div>`).join('')}
+      </div>
+      <div class="explain-box">${r.explanation_text}</div>
+      <div class="db-note">Logged to credittrust.db — see the audit trail via GET /api/predictions/recent.</div>
+    `;
+  }catch(e){
+    $('resultCard').innerHTML = `<div class="err">Prediction failed: ${e.message}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Predict Approval & Risk';
+  }
+});
+
+loadHealth();
+loadLeaderboard();
+loadShap();
+</script>
+</body>
+</html>

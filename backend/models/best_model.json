@@ -1,0 +1,11 @@
+{
+  "name": "Random Forest",
+  "kind": "forest",
+  "roc_auc": 0.945,
+  "file": "random_forest.pkl",
+  "uses_scaled_features": false,
+  "trained_on_real_data": false,
+  "train_rows": 119994,
+  "test_rows": 30000,
+  "default_rate_pct": 7.64
+}
