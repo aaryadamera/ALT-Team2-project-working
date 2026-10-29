@@ -27,7 +27,8 @@ It trains five machine-learning models, automatically promotes the best one, exp
 - **Single process:** FastAPI serves the models and the dashboard together.
 
 ---
-
+## Demo: 
+**https://xai-lending-lab.preview.emergentagent.com/?utm_source=share**
 ## How it works
 
 ```mermaid
